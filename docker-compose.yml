@@ -1,0 +1,87 @@
+version: "3.8"
+
+services:
+    api:
+        build:
+            context: .
+            dockerfile: Dockerfile.api
+        container_name: sp_api
+        ports:
+            - "8080:8080"
+        environment:
+            - APP_PORT=8080
+            - RABBIT_URL=amqp://guest:guest@rabbitmq:5672/
+            - DATABASE_URL=postgres://user:pass@postgres:5432/streampulse?sslmode=disable
+            - REDIS_URL=redis://redis:6379/0
+        depends_on:
+            - rabbitmq
+        networks:
+            - backend_net
+
+    worker:
+        build:
+            context: .
+            dockerfile: Dockerfile.worker
+        container_name: sp_worker
+        restart: on-failure
+        environment:
+            - DATABASE_URL=postgres://user:pass@postgres:5432/streampulse?sslmode=disable
+            - RABBIT_URL=amqp://guest:guest@rabbitmq:5672/
+            - REDIS_URL=redis://redis:6379/0
+        depends_on:
+            postgres:
+                condition: service_healthy
+            rabbitmq:
+                condition: service_started
+        networks:
+            - backend_net
+
+    postgres:
+        image: postgres:15-alpine
+        container_name: sp_postgres
+        restart: always
+        environment:
+            POSTGRES_USER: ${DB_USER:-user}
+            POSTGRES_PASSWORD: ${DB_PASSWORD:-pass}
+            POSTGRES_DB: ${DB_NAME:-streampulse}
+        ports:
+            - "5432:5432"
+        volumes:
+            - postgres-db-volume:/var/lib/postgresql/data
+        networks:
+            - backend_net
+        healthcheck:
+            test:
+                [
+                    "CMD-SHELL",
+                    "pg_isready -U ${DB_USER:-user} -d ${DB_NAME:-streampulse}",
+                ]
+            interval: 5s
+            timeout: 5s
+            retries: 5
+
+    rabbitmq:
+        image: rabbitmq:3-management-alpine
+        container_name: sp_rabbitmq
+        restart: always
+        ports:
+            - "5672:5672"
+            - "15672:15672"
+        networks:
+            - backend_net
+
+    redis:
+        image: redis:7-alpine
+        container_name: sp_redis
+        restart: always
+        ports:
+            - "6379:6379"
+        networks:
+            - backend_net
+
+networks:
+    backend_net:
+        driver: bridge
+
+volumes:
+    postgres-db-volume:
