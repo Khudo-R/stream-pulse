@@ -8,6 +8,7 @@ import (
 	"github.com/Khudo-R/streampulse/internal/config"
 	"github.com/Khudo-R/streampulse/internal/service"
 	api "github.com/Khudo-R/streampulse/internal/transport/http"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
@@ -32,6 +33,10 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/v1/events", handler.PostEvent)
+	mux.Handle("/metrics", promhttp.Handler())
+
+	fs := http.FileServer(http.Dir("./static"))
+	mux.Handle("/", fs)
 
 	log.Printf("🚀 Ingestion API started on port %s", cfg.AppPort)
 	log.Fatal(http.ListenAndServe(":"+cfg.AppPort, mux))

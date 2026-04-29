@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>StreamPulse Dashboard</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+    </head>
+    <body class="bg-slate-900 text-slate-200 min-h-screen font-sans">
+        <div class="max-w-4xl mx-auto py-10 px-5">
+            <div class="flex items-center justify-between mb-8">
+                <h1 class="text-3xl font-bold text-emerald-400">
+                    ⚡ StreamPulse Ingestion
+                </h1>
+                <span
+                    class="bg-emerald-900 text-emerald-300 text-xs font-semibold px-2.5 py-0.5 rounded border border-emerald-700"
+                    >Live</span
+                >
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div
+                    class="bg-slate-800 p-6 rounded-lg border border-slate-700 shadow-xl"
+                >
+                    <h2 class="text-xl font-semibold mb-4 text-white">
+                        Event Builder
+                    </h2>
+
+                    <div class="mb-4">
+                        <label
+                            class="block text-sm font-medium text-slate-400 mb-1"
+                            >Event ID (Idempotency Key)</label
+                        >
+                        <div class="flex">
+                            <input
+                                type="text"
+                                id="eventId"
+                                class="bg-slate-900 border border-slate-700 text-white text-sm rounded-l focus:ring-emerald-500 focus:border-emerald-500 block w-full p-2.5"
+                                readonly
+                            />
+                            <button
+                                onclick="generateNewId()"
+                                class="bg-slate-700 hover:bg-slate-600 border border-slate-600 text-white px-3 rounded-r text-sm"
+                            >
+                                ↻
+                            </button>
+                        </div>
+                        <p class="text-xs text-slate-500 mt-1">
+                            Don't refresh to test Redis duplicate protection.
+                        </p>
+                    </div>
+
+                    <div class="mb-4">
+                        <label
+                            class="block text-sm font-medium text-slate-400 mb-1"
+                            >User ID</label
+                        >
+                        <input
+                            type="text"
+                            id="userId"
+                            value="850e8400-e29b-41d4-a716-446655440000"
+                            class="bg-slate-900 border border-slate-700 text-white text-sm rounded focus:ring-emerald-500 focus:border-emerald-500 block w-full p-2.5"
+                        />
+                    </div>
+
+                    <div class="mb-4 grid grid-cols-2 gap-4">
+                        <div>
+                            <label
+                                class="block text-sm font-medium text-slate-400 mb-1"
+                                >Event Type</label
+                            >
+                            <select
+                                id="eventType"
+                                class="bg-slate-900 border border-slate-700 text-white text-sm rounded focus:ring-emerald-500 focus:border-emerald-500 block w-full p-2.5"
+                            >
+                                <option value="click">Click</option>
+                                <option value="view">View</option>
+                                <option value="purchase">Purchase</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label
+                                class="block text-sm font-medium text-slate-400 mb-1"
+                                >IP Address</label
+                            >
+                            <select
+                                id="eventIp"
+                                class="bg-slate-900 border border-slate-700 text-white text-sm rounded focus:ring-emerald-500 focus:border-emerald-500 block w-full p-2.5"
+                            >
+                                <option value="8.8.8.8">8.8.8.8 (USA)</option>
+                                <option value="133.200.1.1">
+                                    133.200.1.1 (Japan)
+                                </option>
+                                <option value="127.0.0.1">
+                                    127.0.0.1 (Local)
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button
+                        onclick="sendEvent()"
+                        class="w-full text-white bg-emerald-600 hover:bg-emerald-700 font-medium rounded-lg text-sm px-5 py-3 text-center transition-colors"
+                    >
+                        🚀 Send Event
+                    </button>
+                </div>
+
+                <div
+                    class="bg-slate-950 p-6 rounded-lg border border-slate-800 shadow-inner flex flex-col"
+                >
+                    <h2 class="text-xl font-semibold mb-4 text-slate-300">
+                        Request Console
+                    </h2>
+                    <div
+                        id="console"
+                        class="flex-1 bg-black p-4 rounded overflow-y-auto font-mono text-sm text-green-400 border border-slate-800 h-64 md:h-auto whitespace-pre-wrap"
+                    ></div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            function uuidv4() {
+                return "10000000-1000-4000-8000-100000000000".replace(
+                    /[018]/g,
+                    (c) =>
+                        (
+                            +c ^
+                            (crypto.getRandomValues(new Uint8Array(1))[0] &
+                                (15 >> (+c / 4)))
+                        ).toString(16),
+                );
+            }
+
+            function generateNewId() {
+                document.getElementById("eventId").value = uuidv4();
+            }
+
+            function logToConsole(message, type = "info") {
+                const consoleEl = document.getElementById("console");
+                const time = new Date().toLocaleTimeString();
+                const color =
+                    type === "error"
+                        ? "text-red-400"
+                        : type === "success"
+                          ? "text-emerald-400"
+                          : "text-blue-300";
+                consoleEl.innerHTML += `\n<span class="text-slate-500">[${time}]</span> <span class="${color}">${message}</span>`;
+                consoleEl.scrollTop = consoleEl.scrollHeight;
+            }
+
+            async function sendEvent() {
+                const eventId = document.getElementById("eventId").value;
+                const userId = document.getElementById("userId").value;
+                const eventType = document.getElementById("eventType").value;
+                const eventIp = document.getElementById("eventIp").value;
+
+                const payload = {
+                    id: eventId,
+                    user_id: userId,
+                    type: eventType,
+                    metadata: { ip: eventIp },
+                    payload: { source: "web_dashboard" },
+                };
+
+                logToConsole(
+                    `POST /v1/events\n${JSON.stringify(payload, null, 2)}`,
+                    "info",
+                );
+
+                try {
+                    const response = await fetch("/v1/events", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(payload),
+                    });
+
+                    if (response.ok) {
+                        logToConsole(
+                            "HTTP 201 Created: Event queued successfully.",
+                            "success",
+                        );
+                    } else {
+                        logToConsole(
+                            `HTTP ${response.status}: Error queuing event.`,
+                            "error",
+                        );
+                    }
+                } catch (err) {
+                    logToConsole(`Fetch Error: ${err.message}`, "error");
+                }
+            }
+
+            window.onload = generateNewId;
+        </script>
+    </body>
+</html>

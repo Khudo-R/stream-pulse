@@ -21,7 +21,9 @@ func (s *EventService) CreateEvent(ctx context.Context, event *domain.Event) err
 		return err
 	}
 
-	event.ID = uuid.New()
+	if event.ID == uuid.Nil {
+		event.ID = uuid.New()
+	}
 	if event.CreatedAt.IsZero() {
 		event.CreatedAt = time.Now()
 	}

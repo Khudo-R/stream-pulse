@@ -92,6 +92,9 @@ func (c *Consumer) StartConsuming(ctx context.Context) error {
 
 			if err := c.repo.Save(ctx, &event); err != nil {
 				log.Printf("Failed to save event %s to DB: %v", event.ID, err)
+				if removeErr := c.cache.RemoveMark(ctx, event.ID.String()); removeErr != nil {
+					log.Printf("⚠️ Failed to remove duplicate mark for %s: %v", event.ID, removeErr)
+				}
 				d.Nack(false, true)
 				continue
 			}

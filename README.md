@@ -15,6 +15,7 @@ The system is split into two main components:
 - **Message Broker**: RabbitMQ (Asynchronous buffering)
 - **Database**: PostgreSQL (Relational storage)
 - **Cache**: Redis (Idempotency / Deduplication)
+- **Monitoring**: Prometheus & Grafana (Observability)
 - **Containerization**: Docker & Docker Compose
 
 ## 🛠 Setup & Installation
@@ -36,6 +37,8 @@ This will spin up:
 - **sp_postgres**: PostgreSQL database on port 5432.
 - **sp_rabbitmq**: RabbitMQ management UI at http://localhost:15672 (guest/guest).
 - **sp_redis**: Redis instance on port 6379.
+- **sp_prometheus**: Prometheus metrics server at http://localhost:9090.
+- **sp_grafana**: Grafana dashboard at http://localhost:3000 (admin/admin).
 
 ## 📡 API Usage
 ### Send an Event
@@ -64,9 +67,11 @@ docker logs -f sp_worker
 docker exec -it sp_postgres psql -U user -d streampulse -c "SELECT * FROM events;"
 ```
 - **Queue**: Monitor message flow in the RabbitMQ Dashboard at http://localhost:15672.
+- **Metrics**: Access Prometheus at http://localhost:9090 and Grafana at http://localhost:3000 for system visualization.
 
 ## 🛡 Features Implemented
 - **Asynchronous Processing**: Decoupled API and storage layers.
 - **Data Enrichment**: Real-time GeoIP lookup for incoming events.
 - **Idempotency**: Duplicate event detection using Redis.
+- **Observability**: Integrated Prometheus and Grafana for system health monitoring.
 - **Graceful Shutdown**: Safe handling of system signals to prevent data loss.

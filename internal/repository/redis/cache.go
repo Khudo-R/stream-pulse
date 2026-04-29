@@ -40,6 +40,11 @@ func (c *EventCache) MarkAsProcessed(ctx context.Context, eventID string) (bool,
 	return !success, nil
 }
 
+func (c *EventCache) RemoveMark(ctx context.Context, eventID string) error {
+	key := fmt.Sprintf("processed_event:%s", eventID)
+	return c.client.Del(ctx, key).Err()
+}
+
 func (c *EventCache) Close() error {
 	return c.client.Close()
 }
